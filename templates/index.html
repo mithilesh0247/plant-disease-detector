@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🌱 Plant Disease Detector</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: url('https://i.imgur.com/0qBlWBR.jpg') no-repeat center center fixed;
+      background-size: cover;
+      color: #fff;
+      text-align: center;
+    }
+
+    .container {
+      background-color: rgba(0, 0, 0, 0.7);
+      padding: 30px;
+      max-width: 550px;
+      margin: auto;
+      border-radius: 15px;
+      margin-top: 50px;
+    }
+
+    h2 {
+      font-size: 28px;
+      margin-bottom: 15px;
+    }
+
+    p {
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+
+    video, canvas {
+      width: 100%;
+      max-width: 320px;
+      border: 2px solid #fff;
+      border-radius: 10px;
+      margin: 10px auto;
+      display: block;
+    }
+
+    button, input[type="submit"] {
+      background-color: #00b894;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px;
+    }
+
+    button:hover, input[type="submit"]:hover {
+      background-color: #019874;
+    }
+
+    input[type="file"] {
+      margin-top: 10px;
+      color: white;
+    }
+
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 10px;
+      background-color: rgba(255, 255, 255, 0.85);
+      color: #333;
+      font-weight: bold;
+    }
+
+    @media screen and (max-width: 600px) {
+      h2 { font-size: 22px; }
+      p { font-size: 14px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>🌿 Plant Disease Detector</h2>
+  <p>Capture or upload a plant image to detect disease and get treatment advice.</p>
+
+  <video id="camera" width="320" height="240" autoplay></video><br>
+
+  <button onclick="captureImage()">📷 Capture</button>
+  <button onclick="switchCamera()">🔁 Switch Camera</button>
+  <label for="uploadBtn" style="cursor:pointer;">
+    <button>📁 Upload from Device</button>
+  </label>
+
+  <form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="file" id="uploadBtn" name="image" accept="image/*" onchange="handleUpload()" style="display:none;">
+    <input type="file" id="imageInput" name="image" style="display:none;">
+    <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+    <input type="submit" value="🔍 Diagnose">
+  </form>
+
+  <div class="result">
+    {% if diagnosis %}
+      {% if diagnosis.error %}
+        ❌ Error: {{ diagnosis.error }}
+      {% else %}
+        🌱 <b>Disease:</b> {{ diagnosis.disease }} <br>
+        💊 <b>Recommendation:</b> {{ diagnosis.medicine }} <br>
+        📋 <b>Details:</b> {{ diagnosis.description }}
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  let video = document.getElementById('camera');
+  let canvas = document.getElementById('canvas');
+  let imageInput = document.getElementById('imageInput');
+  let currentFacing = "environment"; // rear by default
+  let stream = null;
+
+  function startCamera() {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+    }
+
+    navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: currentFacing } }
+    })
+    .then(mediaStream => {
+      stream = mediaStream;
+      video.srcObject = stream;
+    })
+    .catch(err => alert("Camera Error: " + err));
+  }
+
+  function captureImage() {
+    let ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(blob => {
+      const file = new File([blob], "captured_leaf.jpg", { type: "image/jpeg" });
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      imageInput.files = dt.files;
+    }, 'image/jpeg');
+  }
+
+  function switchCamera() {
+    currentFacing = (currentFacing === "environment") ? "user" : "environment";
+    startCamera();
+  }
+
+  function handleUpload() {
+    // Optional: Show preview or auto-submit
+  }
+
+  // Start default camera on load
+  startCamera();
+</script>
+
+</body>
+</html>
